@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    # Use the image tag we established, referencing the version and date from the .env file
+    image: dktc419/elk:elastic-${ELASTIC_VERSION}-${DATE}
+    # This instruction tells Docker Compose to build the image using the Dockerfile in the current directory
+    build:
+      context: .
+      dockerfile: Dockerfile.elasticsearch
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - elk-net
+
+  kibana:
+    # Use the image tag we established, referencing the version and date from the .env file
+    image: dktc419/elk:kibana-${ELASTIC_VERSION}-${DATE}
+    # This instruction tells Docker Compose to build the image using the Dockerfile in the current directory
+    build:
+      context: .
+      dockerfile: Dockerfile.kibana
+    container_name: kibana
+    environment:
+      # Connect Kibana to the Elasticsearch service within the same Docker network
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - elk-net
+    depends_on:
+      - elasticsearch
+
+volumes:
+  esdata:
+    driver: local
+
+networks:
+  elk-net:
+    driver: bridge
